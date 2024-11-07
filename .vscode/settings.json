@@ -1,0 +1,13 @@
+{
+    "factorio.versions": [
+        {
+            "name": "Steam",
+            "factorioPath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe",
+            "active": true
+        }
+    ],
+    "Lua.workspace.userThirdParty": [
+        "c:\\Users\\MaxAs\\AppData\\Roaming\\Code\\User\\workspaceStorage\\f930f96be911195e9ad45c144190b844\\justarandomgeek.factoriomod-debug\\sumneko-3rd"
+    ],
+    "Lua.workspace.checkThirdParty": "ApplyInMemory"
+}
