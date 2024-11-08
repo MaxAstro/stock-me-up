@@ -43,6 +43,20 @@ local function calc_request_ceiling(logistic_point, name)
     return request_ceiling
 end
 
+--Sums up the total requested stock for an item, including the request section
+local function calc_stock_ceiling(logistic_point, name)
+    ---@cast logistic_point LuaLogisticPoint
+    ---@cast name string
+    local request_ceiling = 0
+    for _, section in pairs(logistic_point.sections) do
+        for _, filter_slot in pairs(section.filters) do
+            if filter_slot.value.name == name then
+                request_ceiling = request_ceiling + filter_slot.min
+            end
+        end
+    end
+    return request_ceiling
+end
 
 -- Determines if a filter for a specific item exists in a given section
 local function find_filter_in_section(name, section)
@@ -76,7 +90,7 @@ local function check_logistics(event)
     -- Note that technically event can also be EventData.on_player_cursor_stack_changed, but the two events pass identical data so it's moot for casting purposes
     local player = game.players[event.player_index]
     if event.name == defines.events.on_player_main_inventory_changed then -- If we got here from main inventory changing, note that.
-        storage.player_inventory_changed[player] = true
+        storage.player_inventory_changed[event.player_index] = true
     end
     -- Pinpoint the logistic point of the player.character that triggered the inventory event
     if player and player.valid and player.character and player.character.valid then
@@ -119,7 +133,7 @@ local function check_logistics(event)
 end
 
 -- Remove filters from the request section as their requests are filled
--- Thank you Atria for letting me use this code
+-- Thank you Atria for letting me adapt this code
 local function cleanup_fulfilled_requests()
     for player_index, _ in pairs(storage.player_inventory_changed) do                               -- Cycle through the players whose inventory has changed
         local player = game.players[player_index]
@@ -127,12 +141,12 @@ local function cleanup_fulfilled_requests()
             local logistic_point = player.character.get_logistic_point(defines.logistic_member_index.character_requester)
 
             if logistic_point then                                                                  -- Find their logistic point and request section
-                local section = get_request_logistic_section(player, logistic_point)
+                local section = get_request_logistic_section(logistic_point)
                 if section then
                     for i, request in pairs(section.filters) do                                     -- I think it's okay to use pairs here instead of ipairs
                         -- TODO check quality
                         local item_count = player.get_item_count(request.value.name)                -- How many of the requested item does the player have?
-                        request_ceiling = calc_request_ceiling(logistic_point, request.value.name)  -- And what is the request ceiling for that item?
+                        request_ceiling = calc_stock_ceiling(logistic_point, request.value.name)    -- And what is the stock ceiling for that item?
                         if item_count >= request_ceiling then                                       -- If we are at the ceiling, remove the request
                             section.clear_slot(i)
                         end
@@ -144,9 +158,9 @@ local function cleanup_fulfilled_requests()
                 end
             end
         end
-    end
-    storage.player_inventory_changed = {}                                                           -- We checked all players whose inventory changed since last time
-end                                                                                                 -- So it's safe to clear the storage variable
+    end                                                                                             -- We checked all players whose inventory changed since last time
+    storage.player_inventory_changed = {}                                                           -- So it's safe to clear the storage variable
+end
 
 -- Initialize the storage variable used to track when a player's inventory changes
 -- Thank you Atria for letting me use this code
