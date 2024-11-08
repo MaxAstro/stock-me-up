@@ -73,7 +73,7 @@ end
 -- Main function - this looks for players with active logistics requests and adds extra filters to them
 local function check_logistics(event)
     ---@cast event EventData.on_player_main_inventory_changed
-    -- Note that technically event can also be EventData.on_player_cursor_stack_changed, but the two events pass identical data so it's moot
+    -- Note that technically event can also be EventData.on_player_cursor_stack_changed, but the two events pass identical data so it's moot for casting purposes
     local player = game.players[event.player_index]
     if event.name == defines.events.on_player_main_inventory_changed then -- If we got here from main inventory changing, note that.
         storage.player_inventory_changed[player] = true
@@ -87,12 +87,12 @@ local function check_logistics(event)
                 for _, section in pairs(logistic_point.sections) do                     -- Iterate through each section looking for the requested item
                     for i, requested_item in pairs(section.filters) do
                         if requested_item.value and requested_item.value.name == logistic_item and requested_item.max ~= nil and requested_item.max > requested_item.min then
-                                                                                                                            -- If the item is found and max is greater than the min but not infinite, then
-                            local request_amount = requested_item.max - requested_item.min                                  -- Calculate the amount of items needed
-                            local stock_section = get_request_logistic_section(logistic_point, true)                -- Find or create the stock-up section
+                                                                                                                        -- If the item is found and max is greater than the min but not infinite, then
+                            local request_amount = requested_item.max - requested_item.min                              -- Calculate the amount of items needed
+                            local stock_section = get_request_logistic_section(logistic_point, true)                    -- Find or create the stock-up section
                             ---@cast stock_section LuaLogisticSection
-                            local target_slot = find_filter_in_section(requested_item.value.name, stock_section)            -- If a request for that item already exists, use that slot
-                            if target_slot then                                                                             -- Increase the existing request if not already at the cap      
+                            local target_slot = find_filter_in_section(requested_item.value.name, stock_section)        -- If a request for that item already exists, use that slot
+                            if target_slot then                                                                         -- Increase the existing request if not already at the cap      
                                 request_ceiling = calc_request_ceiling(logistic_point, requested_item.value.name)
                                 if stock_section.get_slot(target_slot).min < request_ceiling then
                                     local filter = stock_section.get_slot(target_slot)
@@ -107,9 +107,9 @@ local function check_logistics(event)
                                     min = request_amount
                                 })
                             end
-                            local output = calc_request_ceiling(logistic_point, requested_item.value.name)
-                            --local output = stock_section.get_slot(target_slot).min                                      -- Debug code
-                            player.create_local_flying_text({text = output, create_at_cursor = true})
+                            --local output = calc_request_ceiling(logistic_point, requested_item.value.name)            -- Debug code
+                            --local output = stock_section.get_slot(target_slot).min
+                            --player.create_local_flying_text({text = output, create_at_cursor = true})
                         end
                     end
                 end
@@ -121,32 +121,32 @@ end
 -- Remove filters from the request section as their requests are filled
 -- Thank you Atria for letting me use this code
 local function cleanup_fulfilled_requests()
-    for player_index, _ in pairs(storage.player_inventory_changed) do   -- Cycle through the players whose inventory has changed
+    for player_index, _ in pairs(storage.player_inventory_changed) do                               -- Cycle through the players whose inventory has changed
         local player = game.players[player_index]
         if player and player.valid and player.character and player.character.valid then
             local logistic_point = player.character.get_logistic_point(defines.logistic_member_index.character_requester)
 
-            if logistic_point then
+            if logistic_point then                                                                  -- Find their logistic point and request section
                 local section = get_request_logistic_section(player, logistic_point)
                 if section then
-                    for i, request in pairs(section.filters) do    -- I think it's okay to use pairs here instea of ipairs
+                    for i, request in pairs(section.filters) do                                     -- I think it's okay to use pairs here instead of ipairs
                         -- TODO check quality
-                        local item_count = player.get_item_count(request.value.name)
-                        request_ceiling = calc_request_ceiling(logistic_point, request.value.name)
-                        if item_count >= request_ceiling then
+                        local item_count = player.get_item_count(request.value.name)                -- How many of the requested item does the player have?
+                        request_ceiling = calc_request_ceiling(logistic_point, request.value.name)  -- And what is the request ceiling for that item?
+                        if item_count >= request_ceiling then                                       -- If we are at the ceiling, remove the request
                             section.clear_slot(i)
                         end
                     end
 
-                    if section.filters_count == 0 then
+                    if section.filters_count == 0 then                                              -- If all requests are filled, remove the request section
                         logistic_point.remove_section(section.index)
                     end
                 end
             end
         end
     end
-    storage.player_inventory_changed = {}
-end
+    storage.player_inventory_changed = {}                                                           -- We checked all players whose inventory changed since last time
+end                                                                                                 -- So it's safe to clear the storage variable
 
 -- Initialize the storage variable used to track when a player's inventory changes
 -- Thank you Atria for letting me use this code
@@ -156,6 +156,8 @@ local function init_globals()
     end
 end
 
+-- Remove a player from the storage variable if they are deleted from the game
+-- Thank you Atria for letting me use this code
 local function cleanup_player_globals(event)
     storage.player_inventory_changed[event.player_index] = nil
 end
