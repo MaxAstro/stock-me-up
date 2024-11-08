@@ -1,0 +1,19 @@
+{
+    "branches": [
+        "main"
+    ],
+    "plugins": [
+        "semantic-release-factorio",
+        [
+            "@semantic-release/github",
+            {
+                "assets": [
+                    {
+                        "path": "*_*.*.*.zip",
+                        "label": "Packaged Mod"
+                    }
+                ]
+            }
+        ]
+    ]
+}
