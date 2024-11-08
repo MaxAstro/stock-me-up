@@ -2,7 +2,7 @@
 Have you ever been building your base and annoyed by the constant swarm of flies as your logistics bots bring you one item at a time? Do you wish you had more control over when your logistic bots restock you? Do you use modded bots that have higher carrying capacity and want them to take better advantage of that? If so, this mod is for you.
 
 ## Features
-Stock Me Up changes how logistic bots function for any logistic request that has both a minimum and maximum amount set. When your inventory falls below the minimum, instead of only bringing enough items to refill you to it, your logistics bots will stock you all the way up to the maximum. That way, another stock request won't be created until you fall below the minimum again.
+Stock Me Up changes how logistic bots function for any personal logistic request that has both a minimum and maximum amount set. When your inventory falls below the minimum, instead of only bringing enough items to refill you to it, your logistics bots will stock you all the way up to the maximum. That way, another stock request won't be created until you fall below the minimum again.
 
 This is accomplished by a special logistics section, named "Stock Me Up", that is automatically created and removed as needed. This section is robust, and will automatically adjust its request if you make changes to your logistics sections while a request is ongoing.
 
