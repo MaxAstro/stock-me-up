@@ -5,5 +5,9 @@
   "author": "MaxAstro",
   "factorio_version": "2.0",
   "dependencies": ["base >= 2.0"],
-  "description": "Changes personal logistics requests so that upon falling below the minimum amount, drones will restock you to the maximum."
+  "description": "Changes personal logistics requests so that upon falling below the minimum amount, drones will restock you to the maximum.",
+  "package": {
+    "git_publish_branch": "main",
+    "sync_portal_details": true
+  }
 }
