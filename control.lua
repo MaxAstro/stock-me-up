@@ -33,7 +33,7 @@ local function calc_request_ceiling(logistic_point, name)
     for _, section in pairs(logistic_point.sections) do
         if not request_section or section.group ~= request_section.group then   -- If this is called when the request section doesn't exist, it's safe to not check for it.
             for _, filter_slot in pairs(section.filters) do
-                if filter_slot.value.name == name then
+                if filter_slot.value and filter_slot.value.name == name then
                     local increment = filter_slot.max - filter_slot.min
                     request_ceiling = request_ceiling + increment
                 end
@@ -50,7 +50,7 @@ local function calc_stock_ceiling(logistic_point, name)
     local request_ceiling = 0
     for _, section in pairs(logistic_point.sections) do
         for _, filter_slot in pairs(section.filters) do
-            if filter_slot.value.name == name then
+            if filter_slot.value and filter_slot.value.name == name then    -- If there are holes in a logistic section then filter_slot will exist but filter_slot.value won't
                 request_ceiling = request_ceiling + filter_slot.min
             end
         end
@@ -63,7 +63,7 @@ local function find_filter_in_section(name, section)
     ---@cast name string
     ---@cast section LuaLogisticSection
     for i, filter_slot in pairs(section.filters) do
-        if filter_slot.value and filter_slot.value.name == name then
+        if filter_slot.value and filter_slot.value.name == name then        -- If there are holes in a logistic section then filter_slot will exist but filter_slot.value won't
             return i
         end
     end
@@ -107,7 +107,7 @@ local function check_logistics(event)
                             ---@cast stock_section LuaLogisticSection
                             local target_slot = find_filter_in_section(requested_item.value.name, stock_section)        -- If a request for that item already exists, use that slot
                             if target_slot then                                                                         -- Increase the existing request if not already at the cap      
-                                request_ceiling = calc_request_ceiling(logistic_point, requested_item.value.name)
+                                local request_ceiling = calc_request_ceiling(logistic_point, requested_item.value.name)
                                 if stock_section.get_slot(target_slot).min < request_ceiling then
                                     local filter = stock_section.get_slot(target_slot)
                                     filter.min = filter.min + request_amount
@@ -135,20 +135,22 @@ end
 -- Remove filters from the request section as their requests are filled
 -- Thank you Atria for letting me adapt this code
 local function cleanup_fulfilled_requests()
-    for player_index, _ in pairs(storage.player_inventory_changed) do                               -- Cycle through the players whose inventory has changed
+    for player_index, _ in pairs(storage.player_inventory_changed) do                                   -- Cycle through the players whose inventory has changed
         local player = game.players[player_index]
         if player and player.valid and player.character and player.character.valid then
             local logistic_point = player.character.get_logistic_point(defines.logistic_member_index.character_requester)
 
-            if logistic_point then                                                                  -- Find their logistic point and request section
+            if logistic_point then                                                                      -- Find their logistic point and request section
                 local section = get_request_logistic_section(logistic_point)
                 if section then
-                    for i, request in pairs(section.filters) do                                     -- I think it's okay to use pairs here instead of ipairs
+                    for i, request in pairs(section.filters) do                                         -- I think it's okay to use pairs here instead of ipairs
                         -- TODO check quality
-                        local item_count = player.get_item_count(request.value.name)                -- How many of the requested item does the player have?
-                        request_ceiling = calc_stock_ceiling(logistic_point, request.value.name)    -- And what is the stock ceiling for that item?
-                        if item_count >= request_ceiling then                                       -- If we are at the ceiling, remove the request
-                            section.clear_slot(i)
+                        if request.value then                                                           -- Same issue as calc_request_ceiling and calc_stock_ceiling
+                            local item_count = player.get_item_count(request.value.name)                -- How many of the requested item does the player have?
+                            request_ceiling = calc_stock_ceiling(logistic_point, request.value.name)    -- And what is the stock ceiling for that item?
+                            if item_count >= request_ceiling then                                       -- If we are at the ceiling, remove the request
+                                section.clear_slot(i)
+                            end
                         end
                     end
 
