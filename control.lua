@@ -132,11 +132,15 @@ local function check_logistics(event)
                                 end
                             else                                                                                        -- If no request for the item exists in the stock-up section then
                                 target_slot = find_empty_slot(stock_section)                                            -- Find the first empty slot
-                                stock_section.set_slot(target_slot, {                                                   -- Create a request for the items
-                                    value = requested_item.value.name,
-                                    quality = requested_item.value.quality,
+                                local target_filter = {
+                                    value = {
+                                        name = requested_item.value.name,
+                                        quality = requested_item.value.quality
+                                    },
                                     min = request_amount
-                                })
+                                }
+                                ---@cast target_filter LogisticFilter
+                                stock_section.set_slot(target_slot, target_filter)                                      -- Create a request for the items
                             end
                             --local output = calc_request_ceiling(logistic_point, requested_item.value.name)            -- Debug code
                             --local output = stock_section.get_slot(target_slot).min
