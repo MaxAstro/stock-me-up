@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.2
+Date: ????
+  Major Features:
+    - Added quality-awareness
+    - Due to a limitation, any item request will trigger a restock on all qualities of that item for now
+---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2024-11-08
   Major Features:
