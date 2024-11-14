@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.2
-Date: ????
+Date: 2024-11-13
   Major Features:
     - Added quality-awareness
     - Due to a limitation, any item request will trigger a restock on all qualities of that item for now

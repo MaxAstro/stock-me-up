@@ -15,13 +15,13 @@ This is accomplished by a special logistics section, named "Stock Me Up", that i
 ## Known Issues
 * If you have 100 personal logistic sections, the mod will be unable to create another. This will cause unexpected behavior and possibly crashes. Why do you have 100 logistic sections?
 * If you have more than 1000 unique item requests simultaneously, the special logistic section will be unable to fit them all. This will cause unexpected behavior and possibly crashes. Why are you requesting 1000 different items? How will you even fit them in your inventory?
-* Quality is not currently supported; all requests will be for normal-quality items. This will be addressed in the next version.
+* While quality is supported, due to an engine limitation the mod can't tell what quality of item you are short on. If you have multiple requests for the same item at different qualities, they will all get stocked up simultaneously.
+* Weird edge case: If you are outside of a logistic zone and re-enter, and your inventory doesn't change before your bots reach you, AND the first bot that gets to you fills you up to your minimum request, Stock Me Up will not notice you need restocking. This is unfortunately difficult to account for in any performant way.
 
 ## Upcoming Features
-* Support for quality
 * The ability to create logistic sections that are ignored by Stock Me Up
 * The ability to choose the name of the special logistics section
-* A hotkey to stock everything up to max at once
+* A hotkey to stock everything up to max at once or request specific items
 * (Maybe) A GUI to request specific items be stocked up
 
 ## Special Thanks
