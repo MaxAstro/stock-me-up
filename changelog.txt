@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
-Date: 2024-11-15
+Date: 2024-11-16
   Major Features:
     - Added Stock Me Up hotkey (Ctrl+S by default)
     - Using hotkey with an item in hand will request that item be stocked
