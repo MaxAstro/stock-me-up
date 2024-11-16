@@ -66,12 +66,12 @@ function compare_filters(first_slot, second_slot)
             and first_slot.quality == second_slot.quality
 end
 
--- Sums up the total amount of potential stock requests for an item, not counting the request section
+-- Sums up the total potential stock request for an item, subtracting whatever is already requested from the stock section
 -- Providing the logistic point is optional, in case it has already been acquired
 ---@param player LuaPlayer
 ---@param requested_item LogisticFilter|CompiledLogisticFilter|ItemIDAndQualityIDPair
 ---@param logistic_point LuaLogisticPoint?
----@return integer
+---@return integer?
 function calc_request_ceiling(player, requested_item, logistic_point)
     if not logistic_point then
         logistic_point = return_logistic_point(player)
@@ -81,20 +81,35 @@ function calc_request_ceiling(player, requested_item, logistic_point)
     end
     local request_section = get_request_logistic_section(logistic_point)
     local request_amount = 0
+    local found_filter = false      -- If not filter exists for an item outside of the stock section, don't touch it
     for _, section in pairs(logistic_point.sections) do
         if not request_section or section.group ~= request_section.group then   -- If this is called when the request section doesn't exist, it's safe to not check for it.
             for _, filter_slot in pairs(section.filters) do
                 if compare_filters(filter_slot, requested_item) then
-                    local increment = filter_slot.max - filter_slot.min
-                    request_amount = request_amount + increment
+                    found_filter = true                                         -- Note if a filter was found at all, in case an overstock is desired
+                    if filter_slot.max then                                     -- But don't increment the request amount unless a max is set
+                        local increment = filter_slot.max - filter_slot.min
+                        request_amount = request_amount + increment
+                    end
+                end
+            end
+        end
+        if request_section and section.group == request_section.group then      -- If the request section does exist, subtract any existing requests
+            for _, filter_slot in pairs(section.filters) do
+                if compare_filters(filter_slot, requested_item) then
+                    request_amount = request_amount - filter_slot.min
                 end
             end
         end
     end
-    return request_amount
+    if found_filter then
+        return request_amount
+    else
+        return nil
+    end
 end
 
---Sums up the total actual requested stock for an item, min and max, including the request section
+-- Sums up the total actual requested stock for an item, min and max, including the request section
 -- Providing the logistic point is optional, in case it has already been acquired
 ---@param player LuaPlayer
 ---@param requested_item LogisticFilter|CompiledLogisticFilter|ItemIDAndQualityIDPair
@@ -116,9 +131,11 @@ function calc_stock_ceiling(player, requested_item, logistic_point)
     for _, section in pairs(logistic_point.sections) do
         for _, filter_slot in pairs(section.filters) do
             if compare_filters(filter_slot, requested_item) then
-                stock_ceiling.min = stock_ceiling + filter_slot.min
+                stock_ceiling.min = stock_ceiling.min + filter_slot.min
                 if filter_slot.max then
-                    stock_ceiling.max = stock_ceiling + filter_slot.max
+                    stock_ceiling.max = stock_ceiling.max + filter_slot.max
+                else
+                    stock_ceiling.max = stock_ceiling.max + filter_slot.min     -- Max should never be less than min
                 end
             end
         end
@@ -170,10 +187,10 @@ end
 -- Providing the logistic point is optional, in case it has already been acquired
 -- Setting overstock = true will ignore the stock ceiling and request an extra stack of the item
 ---@param player LuaPlayer
----@param requested_item LogisticFilter|CompiledLogisticFilter
+---@param requested_item LogisticFilter|CompiledLogisticFilter|ItemIDAndQualityIDPair
 ---@param logistic_point LuaLogisticPoint?
 ---@param overstock boolean?
----@return integer
+---@return integer?
 function add_stock_request(player, requested_item, logistic_point, overstock)
     overstock = overstock or false
     if not logistic_point then
@@ -183,21 +200,21 @@ function add_stock_request(player, requested_item, logistic_point, overstock)
         end
     end
     -- Standardize the structure of the requested filter
-    if not requested_item.value then
-        requested_item.value = {
-            name = requested_item.name,
-            quality = requested_item.quality
-        }
-        requested_item.min = requested_item.count
-        requested_item.max = requested_item.max_count
+    if requested_item.value then
+        requested_item.name = requested_item.value.name
+        requested_item.quality = requested_item.value.quality
     end
     local stock_section = get_request_logistic_section(logistic_point, true)                    -- Find or create the request section
     if stock_section then
-        local request_ceiling = calc_request_ceiling(player, requested_item, logistic_point)    -- Determine how much of the item we might want
+        local request_amount = calc_request_ceiling(player, requested_item, logistic_point)    -- Determine how much of the item we might want
+        if not request_amount then
+            return nil                     -- Return nil only if no filter exists for the item at all 
+        end
         local overstock_amount = 0
-        if request_ceiling <= 0 then        -- There's no room to request more stock, unless we want to overstock.
+        if request_amount <= 0 then        -- There's no room to request more stock, unless we want to overstock.
             if overstock then
-                overstock_amount = prototypes.item[requested_item.value.name].stack_size
+                request_amount = 0
+                overstock_amount = prototypes.item[requested_item.name].stack_size
             else
                 return 0
             end
@@ -207,20 +224,22 @@ function add_stock_request(player, requested_item, logistic_point, overstock)
             target_slot = find_empty_slot(stock_section)        -- Find the first empty slot
             local filter = {                                    -- Create a new empty filter
                 value = {
-                    name = requested_item.value.name,
-                    quality = requested_item.value.quality
+                    name = requested_item.name,
+                    quality = requested_item.quality
                 },
                 min = 0
             }
             stock_section.set_slot(target_slot, filter)
         end
-        local request_amount = request_ceiling + overstock_amount - stock_section.get_slot(target_slot).min         -- Calculate how to much to add to the filter
-        local filter = stock_section.get_slot(target_slot)                                                          -- Get the filter from target_slot
+        local filter = stock_section.get_slot(target_slot)              -- Get the filter from target_slot
         local old_minimum = filter.min
-        filter.min = filter.min + request_amount                                                                    -- Increase it
-        if filter.min > request_ceiling + overstock_amount then filter.min = request_ceiling + overstock_amount end -- Don't go over the cap.
-        stock_section.set_slot(target_slot, filter)                                                                 -- Set it back to the slot
-        return filter.min - old_minimum                                                                             -- Return the amount of stock added
+        filter.min = filter.min + request_amount + overstock_amount     -- Increase it
+        if filter.min > request_amount and not overstock then           -- Don't go over the cap unless we are overstocking
+            filter.min = request_amount
+        end
+        if overstock_amount > 0 then filter.max = filter.min end        -- Max is used to not automatically remove overstock requests
+        stock_section.set_slot(target_slot, filter)                     -- Set it back to the slot
+        return filter.min - old_minimum                                 -- Return the amount of stock added
     end
     return 0
 end

@@ -26,19 +26,42 @@ end
 ---@param event EventData.CustomInputEvent
 local function do_main_hotkey(event)
     local player = game.players[event.player_index]
+    storage.player_inventory_changed[event.player_index] = true     -- Even though inventory didn't change, we want to double check if any requests need to be removed after this
     local logistic_point = return_logistic_point(player)
     local inventory = player.get_main_inventory()
     if logistic_point and inventory then
         if player.is_cursor_empty() then        -- Is the player holding an item?
-            -- No, so attempt a full stock
+            -- No, so attempt a full stock.
             local items_stocked = 0
             for _, filter in pairs(logistic_point.filters) do
                 if filter.name then
-                    items_stocked = items_stocked + add_stock_request(player, filter, logistic_point)
+                    local item_to_check = build_item_quality_pair(filter.name, filter.quality)
+                    local item_count = inventory.get_item_count(item_to_check)                          -- How many of the this item does the player have?
+                    local stock_ceiling = calc_stock_ceiling(player, filter, logistic_point)            -- And what is the stock ceiling for that item?
+                    if stock_ceiling.min < stock_ceiling.max and item_count < stock_ceiling.max then    -- Create a stock request if we are low
+                        items_stocked = items_stocked + add_stock_request(player, filter, logistic_point)
+                    end
                 end
             end
             if items_stocked == 0 then          -- No items were stocked, so remove the stock section instead
                 destroy_request_logistic_section(logistic_point)
+            player.print("Removed all stock requests.")
+            else
+                player.print("Requested to be fully stocked.")
+            end
+        else
+            -- Yes, so attempt to stock the held item, overstocking if needed.
+            local requested_item = build_item_quality_pair(player.cursor_stack.name, player.cursor_stack.quality.name)
+            items_stocked = add_stock_request(player, requested_item, logistic_point)
+            if not items_stocked then
+                player.print({"","No logistic request exists for ",prototypes.item[requested_item.name].localised_name,"; a stock request was not created.",})
+                return nil
+            end
+            if items_stocked == 0 then
+                items_stocked = add_stock_request(player, requested_item, logistic_point, true)
+                player.print({"","Requested overstock of ",prototypes.item[requested_item.name].localised_name,"; stock request will not be manually removed.",})
+            else
+                player.print({"","Requested stock of ",prototypes.item[requested_item.name].localised_name,".",})
             end
         end
     end
@@ -55,9 +78,9 @@ local function cleanup_fulfilled_requests()
             local request_section = get_request_logistic_section(logistic_point)
             if request_section then
                 for i, requested_item in pairs(request_section.filters) do      -- I think it's okay to use pairs here instead of ipairs
-                    if requested_item.value then                                -- Value will be nil if there is a hole in the logistics section
+                    if requested_item.value and not requested_item.max then     -- Don't remove requests that have a max set, they are overstocks
                         local item_to_check = build_item_quality_pair(requested_item.value.name, requested_item.value.quality)
-                        local item_count = inventory.get_item_count(item_to_check)                          -- How many of the requested item does the player have?
+                        local item_count = inventory.get_item_count(item_to_check)                        -- How many of the requested item does the player have?
                         local stock_ceiling = calc_stock_ceiling(player, requested_item, logistic_point)  -- And what is the stock ceiling for that item?
                         if item_count >= stock_ceiling.min then                                           -- If we are at the ceiling, remove the request
                             request_section.clear_slot(i)
