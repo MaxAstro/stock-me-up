@@ -1,4 +1,17 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+Date: 2024-11-15
+  Major Features:
+    - Added Stock Me Up hotkey (Ctrl+S by default)
+    - Using hotkey with an item in hand will request that item be stocked
+    - Using hotkey with an item that is already being stocked will request an extra stack of that item
+    - Using hotkey with an empty hand will request every item be stocked
+    - Using hotkey while every item is already being stocked will clear all stock requests
+  Optimizations:
+    - Refactored a lot of code
+  Locale:
+    - Now uses localisation file instead of raw strings
+---------------------------------------------------------------------------------------------------
 Version: 0.1.2
 Date: 2024-11-13
   Major Features:

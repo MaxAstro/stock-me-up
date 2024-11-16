@@ -45,23 +45,23 @@ local function do_main_hotkey(event)
             end
             if items_stocked == 0 then          -- No items were stocked, so remove the stock section instead
                 destroy_request_logistic_section(logistic_point)
-            player.print("Removed all stock requests.")
+            player.print({"Stock-Me-Up-Messages.removed-all-requests"})
             else
-                player.print("Requested to be fully stocked.")
+                player.print({"Stock-Me-Up-Messages.request-full-stock"})
             end
         else
             -- Yes, so attempt to stock the held item, overstocking if needed.
             local requested_item = build_item_quality_pair(player.cursor_stack.name, player.cursor_stack.quality.name)
             items_stocked = add_stock_request(player, requested_item, logistic_point)
             if not items_stocked then
-                player.print({"","No logistic request exists for ",prototypes.item[requested_item.name].localised_name,"; a stock request was not created.",})
+                player.print({"Stock-Me-Up-Messages.no-request-exists",prototypes.item[requested_item.name].localised_name,})
                 return nil
             end
             if items_stocked == 0 then
                 items_stocked = add_stock_request(player, requested_item, logistic_point, true)
-                player.print({"","Requested overstock of ",prototypes.item[requested_item.name].localised_name,"; stock request will not be manually removed.",})
+                player.print({"Stock-Me-Up-Messages.requested-overstock",prototypes.item[requested_item.name].localised_name,})
             else
-                player.print({"","Requested stock of ",prototypes.item[requested_item.name].localised_name,".",})
+                player.print({"Stock-Me-Up-Messages.requested-stock",prototypes.item[requested_item.name].localised_name,})
             end
         end
     end

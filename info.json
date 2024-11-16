@@ -5,7 +5,7 @@
   "author": "MaxAstro",
   "factorio_version": "2.0",
   "dependencies": ["base >= 2.0"],
-  "description": "Changes personal logistics requests so that upon falling below the minimum amount, drones will restock you to the maximum.",
+  "description": "Give you more control over how your bots respond to logistics requests, including letting you request to be stocked up on specific items.",
   "package": {
     "git_publish_branch": "main",
     "sync_portal_details": true
