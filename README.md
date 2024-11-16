@@ -27,9 +27,9 @@ For even more control over your logistics requests, Stock Me Up also adds a vers
 * Weird edge case: If you are outside of a logistic zone and re-enter, and your inventory doesn't change before your bots reach you, AND the first bot that gets to you fills you up to your minimum request, Stock Me Up will not notice you need restocking. This is unfortunately difficult to account for in any performant way.
 
 # Upcoming Features
--The ability to create logistic sections that are ignored by Stock Me Up
--The ability to choose the name of the special logistics section
--More settings in general
+* The ability to create logistic sections that are ignored by Stock Me Up
+* The ability to choose the name of the special logistics section
+* More settings in general
 
 # Special Thanks
 * Huge thanks to Atria1234 for letting me use the code that creates and cleans up the special logistics section
