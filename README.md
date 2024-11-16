@@ -3,12 +3,12 @@ Have you ever been building your base and annoyed by the constant swarm of flies
 
 # Features
 
-## Logistics Changes
+### Logistics Changes
 Stock Me Up changes how logistic bots function for any personal logistic request that has both a minimum and maximum amount set. When your inventory falls below the minimum, instead of only bringing enough items to refill you to it, your logistics bots will stock you all the way up to the maximum. That way, another stock request won't be created until you fall below the minimum again.
 
 This is accomplished by a special logistics section, named "Stock Me Up", that is automatically created and removed as needed. This section is robust, and will automatically adjust its request if you make changes to your logistics sections while a request is ongoing.
 
-## Stock Up Hotkey
+### Stock Up Hotkey
 For even more control over your logistics requests, Stock Me Up also adds a versatile hotkey, Ctrl+S by default. With this hotkey, a variety of functions can be triggered:
 * If there is an item in your cursor, a stock up request will be generated for it.
 * If there is already a stock request for the item, an extra stack of the item will be requested - this extra request will not be automatically removed, to avoid the items being taken away by your bots as soon as they are delivered.
