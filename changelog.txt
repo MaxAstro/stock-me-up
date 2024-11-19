@@ -2,6 +2,9 @@
 Version: 0.2.1
 Date: ????
   Changes:
+    - Default hotkey is now Alt+S instead of Ctrl+S
+  Bugfixes:
+    - Fixed localisation of restock hotkey
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 2024-11-16
