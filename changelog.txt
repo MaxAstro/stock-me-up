@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.1
-Date: ????
+Date: 2024-11-19
   Changes:
     - Default hotkey is now Alt+S instead of Ctrl+S
   Bugfixes:
