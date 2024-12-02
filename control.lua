@@ -5,15 +5,18 @@ require 'system.utility'
 -- Note for the above: technically event can also be EventData.on_player_cursor_stack_changed, but the two events pass identical data so it's moot for casting purposes
 local function check_logistics(event)
     local player = game.players[event.player_index]
+    if settings.get_player_settings(player)["stock-me-up-no-automatic-requests-setting"].value == true then
+        return end              -- Skip players with automatic requests disabled
     if event.name == defines.events.on_player_main_inventory_changed then -- If we got here from main inventory changing, note that.
         storage.player_inventory_changed[event.player_index] = true
     end
     local logistic_point = return_logistic_point(player)
     if logistic_point and next(logistic_point.targeted_items_deliver) ~= nil then   -- Did we get a non-empty logistic point and are items scheduled for delivery?
-        for logistic_item, _ in pairs(logistic_point.targeted_items_deliver) do     -- Iterate through each item scheduled for delivery
+        for _, logistic_item in pairs(logistic_point.targeted_items_deliver) do     -- Iterate through each item scheduled for delivery
             for _, section in pairs(logistic_point.sections) do                     -- Iterate through each section looking for the requested item
-                for i, requested_item in pairs(section.filters) do
-                    if requested_item.value and requested_item.value.name == logistic_item then -- If the item is found, then
+                for _, requested_item in pairs(section.filters) do
+                    if requested_item.value and requested_item.value.name == logistic_item.name
+                            and requested_item.value.quality == logistic_item.quality then      -- If the item is found and matches quality, then
                         add_stock_request(player, requested_item, logistic_point)               -- Create a stock request, if one is needed
                     end
                 end
@@ -54,14 +57,26 @@ local function do_main_hotkey(event)
             local requested_item = build_item_quality_pair(player.cursor_stack.name, player.cursor_stack.quality.name)
             items_stocked = add_stock_request(player, requested_item, logistic_point)
             if not items_stocked then
-                player.print({"Stock-Me-Up-Messages.no-request-exists",prototypes.item[requested_item.name].localised_name,})
+                if requested_item.quality ~= "normal" then
+                    player.print({"Stock-Me-Up-Messages.no-request-exists-quality",prototypes.quality[requested_item.quality].localised_name,prototypes.item[requested_item.name].localised_name})
+                else
+                    player.print({"Stock-Me-Up-Messages.no-request-exists",prototypes.item[requested_item.name].localised_name})
+                end
                 return nil
             end
             if items_stocked == 0 then
                 items_stocked = add_stock_request(player, requested_item, logistic_point, true)
-                player.print({"Stock-Me-Up-Messages.requested-overstock",prototypes.item[requested_item.name].localised_name,})
+                if requested_item.quality ~= "normal" then
+                    player.print({"Stock-Me-Up-Messages.requested-overstock-quality",prototypes.quality[requested_item.quality].localised_name,prototypes.item[requested_item.name].localised_name,})
+                else
+                    player.print({"Stock-Me-Up-Messages.requested-overstock",prototypes.item[requested_item.name].localised_name})
+                end
             else
-                player.print({"Stock-Me-Up-Messages.requested-stock",prototypes.item[requested_item.name].localised_name,})
+                if requested_item.quality ~= "normal" then
+                    player.print({"Stock-Me-Up-Messages.requested-stock-quality",prototypes.quality[requested_item.quality].localised_name,prototypes.item[requested_item.name].localised_name,})
+                else
+                    player.print({"Stock-Me-Up-Messages.requested-stock",prototypes.item[requested_item.name].localised_name})
+                end
             end
         end
     end
@@ -71,7 +86,8 @@ end
 -- Thank you Atria for letting me adapt this code
 local function cleanup_fulfilled_requests()
     for player_index, _ in pairs(storage.player_inventory_changed) do           -- Cycle through the players whose inventory has changed
-        local player = game.players[player_index]
+        local player = game.get_player(player_index)    --[[@as LuaPlayer]]
+        
         local logistic_point = return_logistic_point(player)
         local inventory = player.get_main_inventory()                           -- get_item_count is only quality aware in LuaInventory
         if logistic_point and inventory then                                    -- Find their logistic point and request section
@@ -93,8 +109,16 @@ local function cleanup_fulfilled_requests()
                 end
             end
         end
-    end                                 -- We checked all players whose inventory changed since last time
-storage.player_inventory_changed = {}   -- So it's safe to clear the storage variable
+        if settings.get_player_settings(player)["stock-me-up-aggressive-stock-checking-setting"].value == true then
+            local pseudo_event = {              -- Create fake EventData to pass to check_logistics
+                name = "pseudo-event",
+                player_index = player_index
+            }
+            check_logistics(pseudo_event)       -- Run a logistics check if the setting for aggressive checking is enabled
+        else
+            table.remove(storage.player_inventory_changed, player_index)    -- Don't repeatedly check players otherwise
+        end
+    end
 end
 
 -- Initialize the storage variable used to track when a player's inventory changes
@@ -111,14 +135,13 @@ local function cleanup_player_globals(event)
     storage.player_inventory_changed[event.player_index] = nil
 end
 
-
 script.on_event(defines.events.on_player_main_inventory_changed, check_logistics)
 script.on_event(defines.events.on_player_cursor_stack_changed, check_logistics)
 
 script.on_event("stock-me-up-main-hotkey", do_main_hotkey)
--- script.on_event("stock-me-up-full-hotkey", do_full_hotkey) -- Deprecated until selected_prototype is quality aware
+-- script.on_event("stock-me-up-full-hotkey", do_full_hotkey) -- Deprecated; selected_prototype is now quality aware, but I'm not sure this direction makes sense
 
-script.on_nth_tick(60, cleanup_fulfilled_requests)
+script.on_nth_tick(settings.global["stock-me-up-request-cleanup-check-rate-setting"].value --[[@as integer]], cleanup_fulfilled_requests)
 
 script.on_init(init_globals)
 script.on_configuration_changed(init_globals)

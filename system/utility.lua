@@ -17,7 +17,8 @@ end
 ---@return LuaLogisticSection?
 function get_request_logistic_section(logistic_point, create_new)
     create_new = create_new or false    -- Default create_new to false if unspecified
-    local section_name = "Stock Me Up"
+    local player = logistic_point.owner.player --[[@as LuaPlayer]]
+    local section_name = settings.get_player_settings(player)["stock-me-up-section-name-setting"].value --[[@as string]]
     for _, section in pairs(logistic_point.sections) do     -- Iterate through all logistic sections to find ours and return it
         if section.group == section_name then
             return section
@@ -26,8 +27,7 @@ function get_request_logistic_section(logistic_point, create_new)
     -- If we got here then the section doesn't exist yet; are we allowed to create it? If not, simply return that it doesn't exist
     if not create_new then return nil end
     -- Otherwise create the new section and return it
-    local section = logistic_point.add_section(section_name)
-    ---@cast section LuaLogisticSection
+    local section = logistic_point.add_section(section_name) --[[@as LuaLogisticSection]]
     -- The above cast is because it should be impossible for add_section to return nil at this point
     -- We already checked to make sure the section doesn't already exist
     for i = 1, section.filters_count do
@@ -82,14 +82,19 @@ function calc_request_ceiling(player, requested_item, logistic_point)
     local request_section = get_request_logistic_section(logistic_point)
     local request_amount = 0
     local found_filter = false      -- If not filter exists for an item outside of the stock section, don't touch it
+    filter_pattern = settings.get_player_settings(player)["stock-me-up-section-ignore-setting"].value --[[@as string]]
     for _, section in pairs(logistic_point.sections) do
-        if not request_section or section.group ~= request_section.group then   -- If this is called when the request section doesn't exist, it's safe to not check for it.
-            for _, filter_slot in pairs(section.filters) do
-                if compare_filters(filter_slot, requested_item) then
-                    found_filter = true                                         -- Note if a filter was found at all, in case an overstock is desired
-                    if filter_slot.max then                                     -- But don't increment the request amount unless a max is set
-                        local increment = filter_slot.max - filter_slot.min
-                        request_amount = request_amount + increment
+        if section.active then                                                                  -- Ignore sections that aren't active
+            if filter_pattern == "" or not string.match(section.group, filter_pattern) then     -- Ignore sections that match the ignore filter, if one exists
+                if not request_section or section.group ~= request_section.group then           -- If this is called when the request section doesn't exist, it's safe to not check for it.
+                    for _, filter_slot in pairs(section.filters) do
+                        if compare_filters(filter_slot, requested_item) then
+                            found_filter = true                                                 -- Note if a filter was found at all, in case an overstock is desired
+                            if filter_slot.max then                                             -- But don't increment the request amount unless a max is set
+                                local increment = filter_slot.max - filter_slot.min
+                                request_amount = request_amount + increment
+                            end
+                        end
                     end
                 end
             end

@@ -1,7 +1,16 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.2.2
+Version: 1.0.0
 Date: ????
-  Changes:
+  Major Features:
+    - Added several settings options to customize the mod
+    - The mod is now considered feature-complete!
+  Minor Features:
+    - Updated to 2.0.23 compatibility (this version is now required due to the below change)
+    - Automatic stock requests now match the quality of the requested item correctly
+    - Using the hotkey to request an item of a quality other than normal will display the quality requested
+  Bugfixes:
+    - Fixed incorrect localization key for hotkey description
+    - Fixed inactive logistic sections still being counted as active by the mod
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.1
 Date: 2024-11-19
