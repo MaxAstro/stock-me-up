@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.0
-Date: ????
+Date: 2024-12-02
   Major Features:
     - Added several settings options to customize the mod
     - The mod is now considered feature-complete!
